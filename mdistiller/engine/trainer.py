@@ -3,7 +3,6 @@ import time
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from collections import OrderedDict
 import getpass
 from tensorboardX import SummaryWriter
@@ -15,6 +14,7 @@ from .utils import (
     save_checkpoint,
     load_checkpoint,
     log_msg,
+    init_optimizer
 )
 
 
@@ -24,7 +24,7 @@ class BaseTrainer(object):
         self.distiller = distiller
         self.train_loader = train_loader
         self.val_loader = val_loader
-        self.optimizer = self.init_optimizer(cfg)
+        self.optimizer = init_optimizer(self.distiller.module, cfg)
         self.best_acc = -1
 
         username = getpass.getuser()
@@ -34,17 +34,7 @@ class BaseTrainer(object):
             os.makedirs(self.log_path)
         self.tf_writer = SummaryWriter(os.path.join(self.log_path, "train.events"))
 
-    def init_optimizer(self, cfg):
-        if cfg.SOLVER.TYPE == "SGD":
-            optimizer = optim.SGD(
-                self.distiller.module.get_learnable_parameters(),
-                lr=cfg.SOLVER.LR,
-                momentum=cfg.SOLVER.MOMENTUM,
-                weight_decay=cfg.SOLVER.WEIGHT_DECAY,
-            )
-        else:
-            raise NotImplementedError(cfg.SOLVER.TYPE)
-        return optimizer
+
 
     def log(self, lr, epoch, log_dict):
         # tensorboard log

@@ -6,6 +6,7 @@ import sys
 import time
 from tqdm import tqdm
 import random
+import torch.optim as optim
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -162,3 +163,16 @@ def set_seed(seed=None):
     torch.backends.cudnn.deterministic = True  # Ensures reproducibility
     torch.backends.cudnn.benchmark = False
     return seed
+
+
+def init_optimizer(model, cfg):
+    if cfg.SOLVER.TYPE == "SGD":
+        optimizer = optim.SGD(
+            model.get_learnable_parameters(),
+            lr=cfg.SOLVER.LR,
+            momentum=cfg.SOLVER.MOMENTUM,
+            weight_decay=cfg.SOLVER.WEIGHT_DECAY,
+        )
+    else:
+        raise NotImplementedError(f"Optimizer {cfg.SOLVER.TYPE} not implemented.")
+    return optimizer
