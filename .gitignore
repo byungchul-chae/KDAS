@@ -1,0 +1,5 @@
+# paths to teacher weights, data, output
+/download_ckpts
+/data
+/output
+/mdistiller.egg-info
