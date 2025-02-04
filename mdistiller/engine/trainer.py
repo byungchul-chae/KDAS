@@ -14,7 +14,9 @@ from .utils import (
     save_checkpoint,
     load_checkpoint,
     log_msg,
-    init_optimizer
+    init_optimizer,
+    init_scheduler,
+    get_lr
 )
 
 
@@ -25,6 +27,7 @@ class BaseTrainer(object):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.optimizer = init_optimizer(self.distiller.module, cfg)
+        self.scheduler = init_scheduler(self.optimizer, cfg) 
         self.best_acc = -1
 
         username = getpass.getuser()
@@ -33,8 +36,6 @@ class BaseTrainer(object):
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
         self.tf_writer = SummaryWriter(os.path.join(self.log_path, "train.events"))
-
-
 
     def log(self, lr, epoch, log_dict):
         # tensorboard log
@@ -79,7 +80,7 @@ class BaseTrainer(object):
             writer.write("best_acc\t" + "{:.2f}".format(float(self.best_acc)))
 
     def train_epoch(self, epoch):
-        lr = adjust_learning_rate(epoch, self.cfg, self.optimizer)
+        lr = get_lr(self.optimizer)
         train_meters = {
             "training_time": AverageMeter(),
             "data_time": AverageMeter(),
@@ -101,6 +102,9 @@ class BaseTrainer(object):
         # validate
         test_acc, test_acc_top5, test_loss = validate(self.val_loader, self.distiller)
 
+        if self.scheduler:
+            self.scheduler.step()
+            
         # log
         log_dict = OrderedDict(
             {

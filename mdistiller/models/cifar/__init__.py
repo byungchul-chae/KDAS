@@ -20,7 +20,7 @@ from .ShuffleNetv2 import ShuffleV2
 
 cifar100_model_prefix = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 
-    "../../../../download_ckpts/cifar_teachers/"
+    "../../../download_ckpts/cifar_teachers/"
 )
 cifar_model_dict = {
     # teachers

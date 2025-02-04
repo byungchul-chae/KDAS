@@ -7,6 +7,7 @@ import time
 from tqdm import tqdm
 import random
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -176,3 +177,22 @@ def init_optimizer(model, cfg):
     else:
         raise NotImplementedError(f"Optimizer {cfg.SOLVER.TYPE} not implemented.")
     return optimizer
+
+def init_scheduler(optimizer, cfg):
+    if cfg.SOLVER.SCHEDULER == "cosine":
+        return lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=cfg.SOLVER.EPOCHS,
+            eta_min=1e-5
+        )
+    elif cfg.SOLVER.SCHEDULER == "step":
+        return lr_scheduler.MultiStepLR(
+            optimizer,
+            milestones=cfg.SOLVER.LR_DECAY_STAGES,  # ex) [30, 60, 90]
+            gamma=cfg.SOLVER.LR_DECAY_RATE  # ex) 0.1
+        )
+    else:
+        raise ValueError(f"Unknown scheduler type: {cfg.SOLVER.SCHEDULER}")
+
+def get_lr(optimizer):
+    return optimizer.param_groups[0]['lr']
