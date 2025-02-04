@@ -8,6 +8,7 @@ from tqdm import tqdm
 import random
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+from tensorboardX import SummaryWriter
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -196,3 +197,38 @@ def init_scheduler(optimizer, cfg):
 
 def get_lr(optimizer):
     return optimizer.param_groups[0]['lr']
+
+
+
+def setup_logger(log_path):
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
+    return SummaryWriter(os.path.join(log_path, "train.events"))
+
+def log_training(writer, log_path, lr, epoch, log_dict, best_acc, wandb_enabled=False):
+    # TensorBoard Logging
+    for k, v in log_dict.items():
+        writer.add_scalar(k, v, epoch)
+    writer.flush()
+
+    # WandB Logging
+    if wandb_enabled:
+        import wandb
+        wandb.log({"current lr": lr})
+        wandb.log(log_dict)
+        if log_dict["test_acc"] > best_acc:
+            best_acc = log_dict["test_acc"]
+            wandb.run.summary["best_acc"] = best_acc
+
+    # File Logging (worklog.txt)
+    with open(os.path.join(log_path, "worklog.txt"), "a") as writer:
+        lines = [
+            "-" * 25 + os.linesep,
+            f"epoch: {epoch}" + os.linesep,
+            f"lr: {lr:.6f}" + os.linesep,
+        ]
+        for k, v in log_dict.items():
+            lines.append(f"{k}: {v:.2f}" + os.linesep)
+        lines.append("-" * 25 + os.linesep)
+        writer.writelines(lines)
+

@@ -16,7 +16,9 @@ from .utils import (
     log_msg,
     init_optimizer,
     init_scheduler,
-    get_lr
+    get_lr,
+    setup_logger,
+    log_training
 )
 
 
@@ -29,40 +31,8 @@ class BaseTrainer(object):
         self.optimizer = init_optimizer(self.distiller.module, cfg)
         self.scheduler = init_scheduler(self.optimizer, cfg) 
         self.best_acc = -1
-
-        username = getpass.getuser()
-        # init loggers
         self.log_path = os.path.join(cfg.LOG.PREFIX, experiment_name)
-        if not os.path.exists(self.log_path):
-            os.makedirs(self.log_path)
-        self.tf_writer = SummaryWriter(os.path.join(self.log_path, "train.events"))
-
-    def log(self, lr, epoch, log_dict):
-        # tensorboard log
-        for k, v in log_dict.items():
-            self.tf_writer.add_scalar(k, v, epoch)
-        self.tf_writer.flush()
-        # wandb log
-        if self.cfg.LOG.WANDB:
-            import wandb
-
-            wandb.log({"current lr": lr})
-            wandb.log(log_dict)
-        if log_dict["test_acc"] > self.best_acc:
-            self.best_acc = log_dict["test_acc"]
-            if self.cfg.LOG.WANDB:
-                wandb.run.summary["best_acc"] = self.best_acc
-        # worklog.txt
-        with open(os.path.join(self.log_path, "worklog.txt"), "a") as writer:
-            lines = [
-                "-" * 25 + os.linesep,
-                "epoch: {}".format(epoch) + os.linesep,
-                "lr: {:.6f}".format(float(lr)) + os.linesep,
-            ]
-            for k, v in log_dict.items():
-                lines.append("{}: {:.2f}".format(k, v) + os.linesep)
-            lines.append("-" * 25 + os.linesep)
-            writer.writelines(lines)
+        self.tf_writer = setup_logger(self.log_path)
 
     def train(self, resume=False):
         epoch = 1
@@ -80,7 +50,6 @@ class BaseTrainer(object):
             writer.write("best_acc\t" + "{:.2f}".format(float(self.best_acc)))
 
     def train_epoch(self, epoch):
-        lr = get_lr(self.optimizer)
         train_meters = {
             "training_time": AverageMeter(),
             "data_time": AverageMeter(),
@@ -89,7 +58,7 @@ class BaseTrainer(object):
             "top5": AverageMeter(),
         }
         num_iter = len(self.train_loader)
-        pbar = tqdm(range(num_iter))
+        pbar = tqdm(range(num_iter), leave=False)
 
         # train loops
         self.distiller.train()
@@ -104,7 +73,8 @@ class BaseTrainer(object):
 
         if self.scheduler:
             self.scheduler.step()
-            
+        lr = get_lr(self.optimizer)
+
         # log
         log_dict = OrderedDict(
             {
@@ -113,9 +83,11 @@ class BaseTrainer(object):
                 "test_acc": test_acc,
                 "test_acc_top5": test_acc_top5,
                 "test_loss": test_loss,
+                "learning_rate": lr, 
             }
         )
-        self.log(lr, epoch, log_dict)
+        log_training(self.tf_writer, self.log_path, lr, epoch, log_dict, self.best_acc, self.cfg.LOG.WANDB)
+
         # saving checkpoint
         state = {
             "epoch": epoch,
