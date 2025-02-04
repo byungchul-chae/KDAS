@@ -29,11 +29,11 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def validate(val_loader, distiller):
+def validate(val_loader, distiller, tqdm_leave):
     batch_time, losses, top1, top5 = [AverageMeter() for _ in range(4)]
     criterion = nn.CrossEntropyLoss()
     num_iter = len(val_loader)
-    pbar = tqdm(range(num_iter))
+    pbar = tqdm(range(num_iter), leave=tqdm_leave)
 
     distiller.eval()
     with torch.no_grad():
@@ -232,3 +232,4 @@ def log_training(writer, log_path, lr, epoch, log_dict, best_acc, wandb_enabled=
         lines.append("-" * 25 + os.linesep)
         writer.writelines(lines)
 
+    return best_acc

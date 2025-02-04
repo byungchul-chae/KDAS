@@ -10,7 +10,6 @@ from .utils import (
     AverageMeter,
     accuracy,
     validate,
-    adjust_learning_rate,
     save_checkpoint,
     load_checkpoint,
     log_msg,
@@ -58,7 +57,7 @@ class BaseTrainer(object):
             "top5": AverageMeter(),
         }
         num_iter = len(self.train_loader)
-        pbar = tqdm(range(num_iter), leave=False)
+        pbar = tqdm(range(num_iter), leave=self.cfg.LOG.TQDM_LEAVE)
 
         # train loops
         self.distiller.train()
@@ -69,7 +68,7 @@ class BaseTrainer(object):
         pbar.close()
 
         # validate
-        test_acc, test_acc_top5, test_loss = validate(self.val_loader, self.distiller)
+        test_acc, test_acc_top5, test_loss = validate(self.val_loader, self.distiller, self.cfg.LOG.TQDM_LEAVE)
 
         if self.scheduler:
             self.scheduler.step()
@@ -82,11 +81,10 @@ class BaseTrainer(object):
                 "train_loss": train_meters["losses"].avg,
                 "test_acc": test_acc,
                 "test_acc_top5": test_acc_top5,
-                "test_loss": test_loss,
-                "learning_rate": lr, 
+                "test_loss": test_loss
             }
         )
-        log_training(self.tf_writer, self.log_path, lr, epoch, log_dict, self.best_acc, self.cfg.LOG.WANDB)
+        self.best_acc = log_training(self.tf_writer, self.log_path, lr, epoch, log_dict, self.best_acc, self.cfg.LOG.WANDB)
 
         # saving checkpoint
         state = {
