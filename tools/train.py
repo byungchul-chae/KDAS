@@ -9,13 +9,22 @@ cudnn.benchmark = True
 from mdistiller.models import cifar_model_dict, imagenet_model_dict
 from mdistiller.distillers import distiller_dict
 from mdistiller.dataset import get_dataset, get_dataset_strong
-from mdistiller.engine.utils import load_checkpoint, log_msg
+from mdistiller.engine.utils import load_checkpoint, log_msg, set_seed
 from mdistiller.engine.cfg import CFG as cfg
 from mdistiller.engine.cfg import show_cfg
 from mdistiller.engine import trainer_dict
 
 
 def main(cfg, resume, opts):
+
+    # Set the seed before freezing the config
+    seed = cfg.EXPERIMENT.SEED if hasattr(cfg.EXPERIMENT, "SEED") else None
+    seed = set_seed(seed)
+    if hasattr(cfg.EXPERIMENT, "SEED"):
+        cfg.defrost()  # Temporarily make the cfg mutable
+        cfg.EXPERIMENT.SEED = seed
+        cfg.freeze()  # Re-freeze the cfg
+
     experiment_name = cfg.EXPERIMENT.NAME
     if experiment_name == "":
         experiment_name = cfg.EXPERIMENT.TAG

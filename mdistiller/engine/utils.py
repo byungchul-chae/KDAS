@@ -5,7 +5,7 @@ import numpy as np
 import sys
 import time
 from tqdm import tqdm
-
+import random
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -146,3 +146,19 @@ def save_checkpoint(obj, path):
 def load_checkpoint(path):
     with open(path, "rb") as f:
         return torch.load(f, map_location="cpu")
+
+
+def set_seed(seed=None):
+    """Set the seed for reproducibility."""
+    if seed is None:
+        seed = torch.initial_seed() % (2**32)  # Generate a default seed if not provided
+        print(f"Seed not provided. Using generated seed: {seed}")
+    else:
+        print(f"Using provided seed: {seed}")
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # For multi-GPU environments
+    torch.backends.cudnn.deterministic = True  # Ensures reproducibility
+    torch.backends.cudnn.benchmark = False
+    return seed
