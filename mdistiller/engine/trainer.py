@@ -32,6 +32,7 @@ class BaseTrainer(object):
         self.best_acc = -1
         self.log_path = os.path.join(cfg.LOG.PREFIX, experiment_name)
         self.tf_writer = setup_logger(self.log_path)
+        self.tqdm_leave = cfg.LOG.TQDM_LEAVE
 
     def train(self, resume=False):
         epoch = 1
@@ -57,7 +58,7 @@ class BaseTrainer(object):
             "top5": AverageMeter(),
         }
         num_iter = len(self.train_loader)
-        pbar = tqdm(range(num_iter), leave=self.cfg.LOG.TQDM_LEAVE)
+        pbar = tqdm(range(num_iter), leave=self.tqdm_leave)
 
         # train loops
         self.distiller.train()
@@ -68,7 +69,7 @@ class BaseTrainer(object):
         pbar.close()
 
         # validate
-        test_acc, test_acc_top5, test_loss = validate(self.val_loader, self.distiller, self.cfg.LOG.TQDM_LEAVE)
+        test_acc, test_acc_top5, test_loss = validate(self.val_loader, self.distiller, self.tqdm_leave)
 
         if self.scheduler:
             self.scheduler.step()
@@ -134,7 +135,7 @@ class BaseTrainer(object):
         # collect info
         batch_size = image.size(0)
         acc1, acc5 = accuracy(preds, target, topk=(1, 5))
-        train_meters["losses"].update(loss.cpu().detach().numpy().mean(), batch_size)
+        train_meters["losses"].update(loss.mean().cpu().detach().item(), batch_size)
         train_meters["top1"].update(acc1[0], batch_size)
         train_meters["top5"].update(acc5[0], batch_size)
         # print info
