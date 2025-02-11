@@ -437,10 +437,8 @@ class KLKDTrainer(BaseTrainer):
         train_meters["top1"].update(acc1[0], batch_size)
         train_meters["top5"].update(acc5[0], batch_size)
 
-        msg = ("Epoch:{} | Batch:{} | KLKD Loss:{:.4f} | Top-1:{:.3f} | Top-5:{:.3f}"
+        msg = ("Epoch:{} | Samples:{} | KLKD Loss:{:.4f} | Top-1:{:.3f} | Top-5:{:.3f}"
                .format(epoch, self.sample_counter, train_meters["losses"].avg, 
                        train_meters["top1"].avg, train_meters["top5"].avg))
         self.sample_counter += batch_size
         return msg
-
-
