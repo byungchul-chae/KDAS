@@ -11,6 +11,8 @@ def show_cfg(cfg):
     dump_cfg.LOG = cfg.LOG
     if cfg.DISTILLER.TYPE in cfg:
         dump_cfg.update({cfg.DISTILLER.TYPE: cfg.get(cfg.DISTILLER.TYPE)})
+    if cfg.SOLVER.TRAINER in cfg:
+        dump_cfg.update({cfg.SOLVER.TRAINER: cfg.get(cfg.SOLVER.TRAINER)})
     print(log_msg("CONFIG:\n{}".format(dump_cfg.dump()), "INFO"))
 
 
